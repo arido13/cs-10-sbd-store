@@ -4,11 +4,13 @@ require('dotenv').config();
 async function createDatabase() {
   const dbName = process.env.DB_NAME || 'sbd_store_completed';
   const client = new Client({
-    user: process.env.DB_USER,
-    host: process.env.DB_HOST,
-    database: 'postgres',
-    password: process.env.DB_PASSWORD,
-    port: process.env.DB_PORT,
+    connectionString: process.env.DATABASE_URL || undefined,
+    user: process.env.DATABASE_URL ? undefined : process.env.DB_USER,
+    host: process.env.DATABASE_URL ? undefined : process.env.DB_HOST,
+    database: process.env.DATABASE_URL ? undefined : 'postgres',
+    password: process.env.DATABASE_URL ? undefined : process.env.DB_PASSWORD,
+    port: process.env.DATABASE_URL ? undefined : process.env.DB_PORT,
+    ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false,
   });
 
   try {
