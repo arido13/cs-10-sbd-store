@@ -6,27 +6,44 @@ const { deleteCachedUserByEmail } = require('../database/redis');
 
 class UserService {
   static async register({ name, username, email, phone, password }) {
-    // Check if user already exists by email
-    const existingUserByEmail = await User.findByEmail(email);
-    if (existingUserByEmail) {
-      throw new AppError('User with this email already exists', 400);
+    try {
+      const existingUserByEmail = await User.findByEmail(email);
+      if (existingUserByEmail) {
+        throw new AppError('User with this email already exists', 400);
+      }
+
+      const existingUserByUsername = await User.findByUsername(username);
+      if (existingUserByUsername) {
+        throw new AppError('Username already exists', 400);
+      }
+
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash(password, salt);
+
+      const user = await User.create({
+        name,
+        username,
+        email,
+        phone,
+        password: hashedPassword,
+      });
+
+      return user;
+    } catch (error) {
+      if (error.code === '23505') {
+        if (error.detail?.includes('username')) {
+          throw new AppError('Username already exists', 400);
+        }
+
+        if (error.detail?.includes('email')) {
+          throw new AppError('User with this email already exists', 400);
+        }
+
+        throw new AppError('User already exists', 400);
+      }
+
+      throw error;
     }
-    // Note: username uniqueness is enforced by database constraint
-
-    // Hash password
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
-
-    // Create user
-    const user = await User.create({
-      name,
-      username,
-      email,
-      phone,
-      password: hashedPassword,
-    });
-
-    return user;
   }
 
   static async login(email, password) {
