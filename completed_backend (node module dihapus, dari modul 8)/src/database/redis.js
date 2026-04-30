@@ -1,6 +1,5 @@
 const { createClient } = require('redis');
 
-// no 1
 const redisClient = createClient({
   socket: {
     host: process.env.REDIS_HOST || '127.0.0.1',
@@ -18,17 +17,20 @@ redisClient.on('ready', () => {
 });
 
 async function connectRedis() {
+  if (!process.env.REDIS_HOST) {
+    console.log('Redis not configured, skipping Redis connection');
+    return;
+  }
+
   if (!redisClient.isOpen) {
     await redisClient.connect();
   }
 }
-// akhir no 1
 
 function getUserCacheKey(email) {
   return `user:${String(email).toLowerCase()}`;
 }
 
-// no 2
 async function getCachedUserByEmail(email) {
   if (!redisClient.isOpen) return null;
   const cached = await redisClient.get(getUserCacheKey(email));
@@ -43,16 +45,12 @@ async function setCachedUserByEmail(email, userData, ttlSeconds = 60) {
     { EX: ttlSeconds }
   );
 }
-// akhir no 2
 
-// no 3
 async function deleteCachedUserByEmail(email) {
   if (!redisClient.isOpen || !email) return;
   await redisClient.del(getUserCacheKey(email));
 }
-// akhir no 3
 
-// no 4
 async function appendTransactionLog({ userId, itemId, total }) {
   if (!redisClient.isOpen) return null;
 
@@ -62,7 +60,6 @@ async function appendTransactionLog({ userId, itemId, total }) {
     total: String(total),
   });
 }
-// akhir no 4
 
 module.exports = {
   redisClient,

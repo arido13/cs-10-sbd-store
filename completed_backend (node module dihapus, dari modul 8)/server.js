@@ -9,7 +9,11 @@ db.query('SELECT NOW()')
   .then(async () => {
     console.log('Database connected successfully');
 
-    await connectRedis();
+    try {
+      await connectRedis();
+    } catch (redisError) {
+      console.warn('Redis connection skipped:', redisError.message);
+    }
 
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
