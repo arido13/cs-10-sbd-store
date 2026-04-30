@@ -1,6 +1,7 @@
 'use client';
 
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import { useAuth } from './AuthContext';
 
 export interface CartItem {
   id: number;
@@ -22,7 +23,22 @@ interface CartContextType {
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [items, setItems] = useState<CartItem[]>([]);
+  const { user } = useAuth();
+
+  const getCartKey = (userId?: number | null) => {
+    if (userId) return `cart:user:${userId}`;
+    return `cart:guest`;
+  };
+
+  const [items, setItems] = useState<CartItem[]>(() => {
+    try {
+      const key = getCartKey(user?.id ?? null);
+      const raw = typeof window !== 'undefined' ? localStorage.getItem(key) : null;
+      return raw ? JSON.parse(raw) : [];
+    } catch (e) {
+      return [];
+    }
+  });
 
   const addItem = (newItem: CartItem) => {
     setItems((prevItems) => {
@@ -61,6 +77,24 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const getTotalPrice = () => {
     return items.reduce((total, item) => total + item.price * item.quantity, 0);
   };
+
+  useEffect(() => {
+    try {
+      const key = getCartKey(user?.id ?? null);
+      localStorage.setItem(key, JSON.stringify(items));
+    } catch (e) {
+      
+    }
+  }, [items, user?.id]);
+  useEffect(() => {
+    try {
+      const key = getCartKey(user?.id ?? null);
+      const raw = localStorage.getItem(key);
+      setItems(raw ? JSON.parse(raw) : []);
+    } catch (e) {
+      setItems([]);
+    }
+  }, [user?.id]);
 
   return (
     <CartContext.Provider
